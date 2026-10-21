@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PMIT Attendance CSE</title>
+  <style>
+    :root {
+      --primary: #941abd;
+      --success: #0d904f;
+      --danger: #d93025;
+      --bg: #f7ebf2;
+      --card: #ffffff;
+      --text: #181717;
+      --muted: #5f6368;
+      --border: #f5a8a8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 16px 12px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 22px 16px;
+      text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+      border-top: 4px solid var(--primary);
+    }
+
+    .header h1 {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #1a3a6b;
+      letter-spacing: 0.4px;
+      margin-bottom: 6px;
+    }
+
+    .header p {
+      font-size: 0.95rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* Red Live Dot */
+    .live-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background-color: #e53935;
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.7);
+      animation: pulse 1.6s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.7);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(229, 57, 53, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(229, 57, 53, 0);
+      }
+    }
+
+    /* ===== STATS CARDS ===== */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px 10px;
+      text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .stat-card .label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 4px;
+    }
+
+    .stat-card .value {
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+
+    .stat-card.total .value  { color: #1a3a6b; }
+    .stat-card.entry .value  { color: var(--success); }
+    .stat-card.exit .value   { color: var(--danger); }
+    .stat-card.today .value  { color: var(--primary); }
+
+    /* ===== CONTROLS ===== */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+      align-items: center;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 180px;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 12px 14px 12px 40px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border 0.2s;
+      background: white;
+    }
+
+    .search-box input:focus {
+      border-color: var(--primary);
+    }
+
+    .search-box::before {
+      content: "🔍";
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.95rem;
+      opacity: 0.6;
+    }
+
+    select, button {
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      border: 1px solid var(--border);
+      background: white;
+      cursor: pointer;
+    }
+
+    select:focus, button:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    button#refresh-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-weight: 500;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    button#refresh-btn:hover {
+      background: #7a1599;
+    }
+
+    button#refresh-btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    /* Auto Refresh Toggle */
+    .auto-refresh-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+
+    .auto-refresh-box label {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .3s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--primary);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    /* ===== TABLE ===== */
+    .table-card {
+      background: var(--card);
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      min-width: 600px;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: #f8f9fa;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .ENTRY {
+      background: #e6f4ea;
+      color: var(--success);
+    }
+
+    .EXIT {
+      background: #fce8e6;
+      color: var(--danger);
+    }
+
+    .empty, .loading, .error {
+      padding: 40px 16px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .error {
+      color: var(--danger);
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    /* ===================== RESPONSIVE ===================== */
+    @media (max-width: 768px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .header h1 {
+        font-size: 1.3rem;
+      }
+      .stat-card .value {
+        font-size: 1.5rem;
+      }
+    }
+
+    @media (max-width: 520px) {
+      body {
+        padding: 12px 10px;
+      }
+      .header {
+        padding: 18px 12px;
+      }
+      .header h1 {
+        font-size: 1.2rem;
+      }
+      .header p {
+        font-size: 0.88rem;
+      }
+      .stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .stat-card {
+        padding: 14px 8px;
+      }
+      .stat-card .label {
+        font-size: 0.7rem;
+      }
+      .stat-card .value {
+        font-size: 1.4rem;
+      }
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .search-box {
+        min-width: 100%;
+      }
+      select, button#refresh-btn, .auto-refresh-box {
+        width: 100%;
+        justify-content: center;
+      }
+      table {
+        font-size: 0.85rem;
+      }
+      th, td {
+        padding: 10px 12px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .header h1 {
+        font-size: 1.1rem;
+      }
+      .stat-card .value {
+        font-size: 1.25rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <div class="header">
+      <h1>PMIT SMART ATTENDANCE: CSE_branch</h1>
+      <p>
+        <span class="live-dot"></span>
+        Live Attendance Dashboard
+      </p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats">
+      <div class="stat-card total">
+        <div class="label">Total</div>
+        <div class="value" id="total-count">–</div>
+      </div>
+      <div class="stat-card entry">
+        <div class="label">Entry</div>
+        <div class="value" id="entry-count">–</div>
+      </div>
+      <div class="stat-card exit">
+        <div class="label">Exit</div>
+        <div class="value" id="exit-count">–</div>
+      </div>
+      <div class="stat-card today">
+        <div class="label">Today</div>
+        <div class="value" id="today-count">–</div>
+      </div>
+    </div>
+
+    <!-- Search + Filter + Refresh + Auto Refresh -->
+    <div class="controls">
+      <div class="search-box">
+        <input type="text" id="search-input" 
+               placeholder="Search Date, Roll No, Name or Card ID..." 
+               oninput="filterTable()">
+      </div>
+
+      <select id="status-filter" onchange="filterTable()">
+        <option value="All">All Status</option>
+        <option value="ENTRY">ENTRY</option>
+        <option value="EXIT">EXIT</option>
+      </select>
+
+      <button id="refresh-btn" onclick="loadData()">↻ Refresh</button>
+
+      <!-- Auto Refresh Toggle -->
+      <div class="auto-refresh-box">
+        <label class="switch">
+          <input type="checkbox" id="auto-refresh-toggle" checked onchange="toggleAutoRefresh()">
+          <span class="slider"></span>
+        </label>
+        <label for="auto-refresh-toggle">Auto Refresh</label>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>DATE</th>
+              <th>ROLL NO</th>
+              <th>NAME</th>
+              <th>CARD ID</th>
+              <th>STATUS</th>
+              <th>TIME</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <tr>
+              <td colspan="6" class="loading">Loading data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer>
+      Data fetched live from Google Sheet • Last refresh: <span id="refresh-time">–</span>
+    </footer>
+  </div>
+
+  <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwcxDegg6A-s-F4LqNh1cG85E1gUo820lc5-14lpbDBEzQeT0A4srfMwYTNtecPBwTZ/exec";
+
+    let allData = [];
+    let autoRefreshInterval = null;
+
+    async function loadData() {
+      const btn = document.getElementById("refresh-btn");
+      const tbody = document.getElementById("table-body");
+
+      btn.disabled = true;
+      btn.textContent = "Loading...";
+
+      try {
+        const response = await fetch(WEB_APP_URL + "?action=data");
+        const result = await response.json();
+
+        if (result.status !== "success") {
+          throw new Error(result.message || "Failed to load data");
+        }
+
+        allData = result.data || [];
+        updateStats(allData);
+        renderTable(allData);
+
+        document.getElementById("refresh-time").textContent =
+          new Date().toLocaleTimeString("en-IN", { hour12: true });
+
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="error">Error: ${err.message}</td></tr>`;
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "↻ Refresh";
+      }
+    }
+
+    function updateStats(data) {
+      const total = data.length;
+      const entry = data.filter(r => r.STATUS === "ENTRY").length;
+      const exit  = data.filter(r => r.STATUS === "EXIT").length;
+
+      const today = new Date().toLocaleDateString("en-IN", {
+        day: "2-digit", month: "2-digit", year: "numeric"
+      }).replace(/\//g, "-");
+
+      const todayCount = data.filter(r => r.DATE === today).length;
+
+      document.getElementById("total-count").textContent = total;
+      document.getElementById("entry-count").textContent = entry;
+      document.getElementById("exit-count").textContent = exit;
+      document.getElementById("today-count").textContent = todayCount;
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById("table-body");
+
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty">No records found</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.map(row => `
+        <tr>
+          <td>${row.DATE || ""}</td>
+          <td>${row["ROLL NO"] || ""}</td>
+          <td>${row.NAME || ""}</td>
+          <td><code>${row["CARD ID"] || ""}</code></td>
+          <td><span class="status-badge ${row.STATUS}">${row.STATUS || ""}</span></td>
+          <td>${row.TIME || ""}</td>
+        </tr>
+      `).join("");
+    }
+
+    function filterTable() {
+      const search = document.getElementById("search-input").value.toLowerCase().trim();
+      const status = document.getElementById("status-filter").value;
+
+      let filtered = allData;
+
+      if (status !== "All") {
+        filtered = filtered.filter(r => r.STATUS === status);
+      }
+
+      if (search) {
+        filtered = filtered.filter(r => {
+          const date = (r.DATE || "").toLowerCase();
+          const roll = (r["ROLL NO"] || "").toLowerCase();
+          const name = (r.NAME || "").toLowerCase();
+          const card = (r["CARD ID"] || "").toLowerCase();
+
+          return date.includes(search) || 
+                 roll.includes(search) || 
+                 name.includes(search) || 
+                 card.includes(search);
+        });
+      }
+
+      renderTable(filtered);
+      updateStats(filtered);
+    }
+
+    // ===== Auto Refresh On/Off =====
+    function toggleAutoRefresh() {
+      const isOn = document.getElementById("auto-refresh-toggle").checked;
+
+      if (isOn) {
+        // Start auto refresh every 30 seconds
+        autoRefreshInterval = setInterval(loadData, 30000);
+      } else {
+        // Stop auto refresh
+        if (autoRefreshInterval) {
+          clearInterval(autoRefreshInterval);
+          autoRefreshInterval = null;
+        }
+      }
+    }
+
+    // Load data when page opens
+    loadData();
+
+    // Start auto refresh by default (because checkbox is checked)
+    toggleAutoRefresh();
+  </script>
+</body>
+</html>
